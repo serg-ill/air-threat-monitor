@@ -8,5 +8,5 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/serg-ill/air-threat-monitor/issues",
-  "version": "0.4.0"
+  "version": "0.4.1"
 }

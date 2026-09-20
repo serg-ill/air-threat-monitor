@@ -4,7 +4,7 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.4.0";
+const ASSET_VERSION = "0.4.1";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;
@@ -1777,13 +1777,14 @@ class AirThreatRadarCard extends HTMLElement {
       ? data.alert_level === "yellow" ? "yellow" : "red"
       : "safe";
     const warning = alertLevel === "yellow";
+    const signalWarning = warning && !themeStyle;
     const rows = visible
       .map((item) => {
         const title = targetDisplayTitle(item, t);
         const place = item.locality || item.region;
         const stale = item.status === "stale" ? `<em>${t.stale}</em>` : "";
         const rotation = targetIconRotation(item);
-        const listImageUrl = (warning || lightTheme) && item.image_light_url
+        const listImageUrl = (signalWarning || lightTheme) && item.image_light_url
           ? item.image_light_url
           : item.image_url;
         return `
@@ -1847,57 +1848,57 @@ class AirThreatRadarCard extends HTMLElement {
     )
       ? `<button class="chip compass-enable" type="button"${this._compassState === "checking" ? " disabled" : ""}><ha-icon icon="mdi:compass"></ha-icon><span>${escapeHtml(compassLabel)}</span></button>`
       : "";
-    const cardBackground = warning
-      ? "linear-gradient(135deg, #ffe27a 0%, #ffd24a 52%, #f4b91f 100%)"
-      : themeStyle
+    const cardBackground = themeStyle
       ? "var(--ha-card-background, var(--card-background-color, #111315))"
+      : warning
+      ? "linear-gradient(135deg, #ffe27a 0%, #ffd24a 52%, #f4b91f 100%)"
       : data.alert_active
       ? "linear-gradient(135deg, #3f0303 0%, #8b0000 50%, #c1121f 100%)"
       : "linear-gradient(135deg, #1f6f2b 0%, #358d32 55%, #43a047 100%)";
-    const cardColor = warning
-      ? "#17130a"
-      : themeStyle
+    const cardColor = themeStyle
       ? "var(--primary-text-color, #f5f5f5)"
+      : warning
+      ? "#17130a"
       : "white";
-    const mutedColor = warning
-      ? "rgba(23,19,10,.70)"
-      : themeStyle
+    const mutedColor = themeStyle
       ? "var(--secondary-text-color, rgba(255,255,255,.68))"
+      : warning
+      ? "rgba(23,19,10,.70)"
       : "rgba(255,255,255,.68)";
-    const dividerColor = warning
-      ? "rgba(23,19,10,.17)"
-      : themeStyle
+    const dividerColor = themeStyle
       ? "var(--divider-color, rgba(127,127,127,.24))"
+      : warning
+      ? "rgba(23,19,10,.17)"
       : "rgba(255,255,255,.18)";
-    const panelBackground = warning
-      ? "rgba(255,255,255,.18)"
-      : themeStyle
+    const panelBackground = themeStyle
       ? "var(--secondary-background-color, rgba(127,127,127,.10))"
+      : warning
+      ? "rgba(255,255,255,.18)"
       : "rgba(0,0,0,.10)";
-    const chipBackground = warning
-      ? "rgba(255,255,255,.38)"
-      : themeStyle
+    const chipBackground = themeStyle
       ? lightTheme
         ? "var(--secondary-background-color, rgba(127,127,127,.14))"
         : "rgba(255,255,255,.075)"
+      : warning
+      ? "rgba(255,255,255,.38)"
       : "rgba(0,0,0,.22)";
-    const chipBorder = warning
-      ? "rgba(23,19,10,.16)"
-      : darkTheme
+    const chipBorder = darkTheme
       ? "rgba(255,255,255,.15)"
+      : signalWarning
+      ? "rgba(23,19,10,.16)"
       : dividerColor;
-    const chipShadow = warning
-      ? "inset 0 1px 0 rgba(255,255,255,.42), 0 2px 7px rgba(72,48,0,.12)"
-      : darkTheme
+    const chipShadow = darkTheme
       ? "inset 0 1px 0 rgba(255,255,255,.08), 0 0 10px rgba(255,255,255,.035)"
       : themeStyle
       ? "none"
+      : warning
+      ? "inset 0 1px 0 rgba(255,255,255,.42), 0 2px 7px rgba(72,48,0,.12)"
       : "inset 0 1px 0 rgba(255,255,255,.10), 0 2px 7px rgba(0,0,0,.18)";
-    const chipTextShadow = warning
-      ? "none"
-      : darkTheme
+    const chipTextShadow = darkTheme
       ? "0 1px 2px rgba(0,0,0,.58)"
       : themeStyle
+      ? "none"
+      : warning
       ? "none"
       : "0 1px 3px rgba(0,0,0,.32)";
     const customStatusImageUrl = data.alert_active
@@ -1940,7 +1941,7 @@ class AirThreatRadarCard extends HTMLElement {
         .status-time { display:block; line-height:12px; }
         .chips { margin-top:7px; display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
         .chip { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-width:0; min-height:28px; max-width:100%; padding:0 10px; border-radius:999px; background:${chipBackground}; border:1px solid ${chipBorder}; color:${cardColor}; box-shadow:${chipShadow}; font-family:inherit; font-size:12px; font-weight:850; line-height:1; text-shadow:${chipTextShadow}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .chip.duration { flex:none; background:${warning || themeStyle ? chipBackground : "rgba(255,255,255,.16)"}; border-color:${chipBorder}; }
+        .chip.duration { flex:none; background:${signalWarning || themeStyle ? chipBackground : "rgba(255,255,255,.16)"}; border-color:${chipBorder}; }
         .compass-enable { gap:5px; cursor:pointer; }
         .compass-enable ha-icon { flex:none; width:15px; height:15px; --mdc-icon-size:15px; }
         .compass-enable span { overflow:hidden; text-overflow:ellipsis; }
@@ -1968,7 +1969,7 @@ class AirThreatRadarCard extends HTMLElement {
         .target i { position:absolute; right:-5px; bottom:-5px; width:9px; height:9px; display:grid; place-items:center; border-radius:50%; background:#17191c; color:white; font:700 7px/1 sans-serif; }
         .list { border-top:1px solid ${dividerColor}; background:${panelBackground}; }
         .row { min-height:38px; padding:0 14px; display:grid; grid-template-columns:28px minmax(0,1fr) auto; gap:8px; align-items:center; border-bottom:1px solid ${dividerColor}; font-size:12px; }
-        .row img { width:24px; height:24px; object-fit:contain; transform-origin:center; filter:${warning || lightTheme ? "none" : themeStyle ? "drop-shadow(0 0 2px rgba(0,0,0,.88))" : "drop-shadow(0 0 3px rgba(255,255,255,.36))"}; }
+        .row img { width:24px; height:24px; object-fit:contain; transform-origin:center; filter:${signalWarning || lightTheme ? "none" : themeStyle ? "drop-shadow(0 0 2px rgba(0,0,0,.88))" : "drop-shadow(0 0 3px rgba(255,255,255,.36))"}; }
         .target-copy { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .target-copy span { color:${mutedColor}; }
         .target-copy em { margin-left:6px; padding:2px 4px; border-radius:3px; background:rgba(127,127,127,.20); font-size:8px; font-style:normal; opacity:.82; }
@@ -1985,7 +1986,7 @@ class AirThreatRadarCard extends HTMLElement {
         .metric-kab b { color:#ffd166; }
         .metric-aircraft b { color:#ffb86b; }
         .metric-unknown b { color:#c8cdd3; }
-        ${warning ? ".analytics b { color:#17130a; }" : ""}
+        ${signalWarning ? ".analytics b { color:#17130a; }" : ""}
         .credit { font-size:8px; opacity:.58; white-space:nowrap; }
         .cache-state { margin-right:5px; color:#ffd166; font-size:8px; font-weight:800; opacity:1; }
         .cache-state.delayed { text-transform:uppercase; }

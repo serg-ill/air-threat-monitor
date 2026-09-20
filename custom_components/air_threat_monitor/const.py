@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN = "air_threat_monitor"
-VERSION: Final = "0.4.0"
+VERSION: Final = "0.4.1"
 DEFAULT_ENTRY_TITLE: Final = "Air Threat Monitor"
 PROJECT_URL: Final = "https://github.com/serg-ill/air-threat-monitor"
 CONFIG_ENTRY_VERSION: Final = 2

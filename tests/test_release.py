@@ -162,12 +162,20 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
         in card
     )
     assert 'this._config.card_style === "theme"' in card
+    assert "const signalWarning = warning && !themeStyle;" in card
+    assert "const cardBackground = themeStyle" in card
+    assert "const cardColor = themeStyle" in card
+    assert "const mutedColor = themeStyle" in card
+    assert "const dividerColor = themeStyle" in card
+    assert "const panelBackground = themeStyle" in card
+    assert "const chipBackground = themeStyle" in card
     assert "var(--ha-card-background" in card
     assert "var(--primary-text-color" in card
     assert 'class="status-marker${warning ? " warning-image" : ""}"' in card
     assert "this._hass.themes.darkMode === false" in card
     assert "item.image_light_url" in card
-    assert 'filter:${warning || lightTheme ? "none"' in card
+    assert 'filter:${signalWarning || lightTheme ? "none"' in card
+    assert '${signalWarning ? ".analytics b { color:#17130a; }" : ""}' in card
     assert "rgba(255,255,255,.075)" in card
     assert "min-height:28px" in card
     assert "За темою Home Assistant" in card

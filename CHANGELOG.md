@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1
+
+- Fixed the yellow warning state overriding the neutral Home Assistant theme
+  card style. Theme-aware cards now keep their configured light or dark
+  background, text, dividers, chips, and target icons for safe, yellow, and red
+  states; the signal-color style remains green, amber, and red.
+
 ## 0.4.0
 
 - Added support for NEPTUN's `yellow` warning level alongside red air alerts.

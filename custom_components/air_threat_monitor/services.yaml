@@ -1,0 +1,10 @@
+get_targets:
+  name: Get active threat targets
+  description: Returns a list of all active airborne targets currently visible on the radar card map snapshot.
+  response:
+    element:
+      type: object
+      fields:
+        targets:
+          name: Targets array
+          description: A collection of serialized target objects including ID, category, distance, and bearing.

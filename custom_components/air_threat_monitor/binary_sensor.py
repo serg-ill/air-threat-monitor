@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -27,6 +27,7 @@ class AirAlertBinarySensor(AirThreatEntity, BinarySensorEntity):
     """Report whether an air alert affects the configured location."""
 
     _attr_translation_key = "air_alert"
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
 
     def __init__(self, entry: AirThreatConfigEntry) -> None:
         super().__init__(entry.runtime_data, entry, "air_alert")
@@ -49,13 +50,6 @@ class AirAlertBinarySensor(AirThreatEntity, BinarySensorEntity):
             if alert.level.value == "yellow"
             else "mdi:shield-alert"
         )
-
-    @property
-    def entity_picture(self) -> str:
-        """Return the bundled state illustration."""
-
-        filename = "danger.png" if self.is_on else "safe.png"
-        return asset_url(f"images/{filename}")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

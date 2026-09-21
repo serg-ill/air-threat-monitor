@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import logging
 import re
+import voluptuous as vol
+
 from pathlib import Path
 
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -20,11 +22,12 @@ from .const import (
     CONFIG_ENTRY_MINOR_VERSION,
     CONFIG_ENTRY_VERSION,
     DEFAULT_ENTRY_TITLE,
+    SERVICE_GET_TARGETS,
     STATIC_URL,
 )
 from .const import DOMAIN as DOMAIN
 from .coordinator import AirThreatCoordinator
-from .websocket import async_register_websocket_api
+from .websocket import async_register_websocket_api, _serialize_threat
 
 PLATFORMS = (Platform.BINARY_SENSOR, Platform.SENSOR)
 
@@ -113,6 +116,20 @@ async def async_setup_entry(
     coordinator = AirThreatCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    async def async_handle_get_targets(call: ServiceCall) -> dict[str, any]:
+        if not coordinator or not coordinator.data or not coordinator.data.threats:
+            return {"targets": []}
+        serialized_targets = [
+            _serialize_threat(item) for item in coordinator.data.threats
+        ]
+        return {"targets": serialized_targets}
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_TARGETS,
+        async_handle_get_targets,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.ONLY,
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

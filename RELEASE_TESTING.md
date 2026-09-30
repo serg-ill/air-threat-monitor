@@ -15,6 +15,12 @@ Thank you for testing Air Threat Monitor.
 - [ ] The form pre-fills the Home Assistant coordinates.
 - [ ] A valid location creates exactly three entities.
 - [ ] Reconfigure changes the monitored location and reloads the entry.
+- [ ] **Developer tools > Actions** exposes
+      `air_threat_monitor.get_targets` with a required location selector.
+- [ ] Calling `air_threat_monitor.get_targets` with response data enabled
+      returns `count`, `updated_at`, and the complete sorted `targets` list.
+- [ ] Each returned target has distance, bearings, heading/direction,
+      approach, risk, status, and image fields but no exact coordinates.
 
 ## Card
 
@@ -29,6 +35,10 @@ Thank you for testing Air Threat Monitor.
 - [ ] **Demo: yellow level** shows an amber signal card, the
       `ЖОВТИЙ РІВЕНЬ` heading, and amber warning artwork.
 - [ ] **Demo: alert** shows sample targets on a north-up radar.
+- [ ] **Standard** card height preserves the existing layout.
+- [ ] **Compact** card height reduces the header, target rows, and footer
+      without clipping headings, badges, radar marks, or analytics.
+- [ ] Card corners follow `--ha-card-border-radius` in both visual styles.
 - [ ] The radar sweep completes full turns without jumping back during refresh.
 - [ ] **Automatic (recommended)** shows up to five targets inside the selected
       radar radius and no empty rows.

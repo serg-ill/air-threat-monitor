@@ -141,6 +141,19 @@ def test_card_is_picker_registered_and_contains_demo_mode() -> None:
     assert 'orientation_mode: "north_up"' in card
     assert 'card_style: "signal"' in card
     assert 'const VALID_CARD_STYLES = new Set(["signal", "theme"]);' in card
+    assert 'card_density: "standard"' in card
+    assert (
+        'const VALID_CARD_DENSITIES = new Set(["standard", "compact"]);'
+        in card
+    )
+    assert 'id="card-density"' in card
+    assert 'class="${compactDensity ? "density-compact" : ""}"' in card
+    assert "ha-card.density-compact .top" in card
+    assert "ha-card.density-compact .row" in card
+    assert "ha-card.density-compact .footer" in card
+    assert "const rowHeight = this._config.card_density" in card
+    assert "border-radius:20px" not in card
+    assert "var(--ha-card-border-radius,12px)" in card
     assert 'artwork_style: "standard"' in card
     assert (
         'const VALID_ARTWORK_STYLES = new Set(["standard", "custom"]);'
@@ -412,3 +425,38 @@ def test_card_resource_is_registered_in_lovelace_storage() -> None:
     assert "resources.async_update_item" in setup
     assert '{"res_type": "module", "url": CARD_MODULE_URL}' in setup
     assert "add_extra_js_url" not in setup
+
+
+def test_get_targets_response_service_is_registered() -> None:
+    setup = (INTEGRATION / "__init__.py").read_text(encoding="utf-8")
+    services = (INTEGRATION / "services.py").read_text(encoding="utf-8")
+    service_description = (
+        INTEGRATION / "services.yaml"
+    ).read_text(encoding="utf-8")
+
+    assert "async_register_services(hass)" in setup
+    assert "SupportsResponse.ONLY" in services
+    assert "ConfigEntryState.LOADED" in services
+    assert "ServiceValidationError" in services
+    assert '"targets": [serialize_threat(item)' in services
+    assert '"config_entry_id": entry.entry_id' in services
+    assert "config_entry_id:" in service_description
+    assert "required: true" in service_description
+    assert "integration: air_threat_monitor" in service_description
+
+    websocket = (INTEGRATION / "websocket.py").read_text(encoding="utf-8")
+    for field in (
+        "bearing_from_home",
+        "bearing_to_home",
+        "bearing_label",
+        "bearing_arrow",
+        "heading_arrow",
+        "screen_bearing",
+        "approach_angle",
+    ):
+        assert f'"{field}"' in websocket
+
+    for filename in ("strings.json", "translations/en.json", "translations/uk.json"):
+        content = json.loads((INTEGRATION / filename).read_text(encoding="utf-8"))
+        assert "get_targets" in content["services"]
+        assert "config_entry_id" in content["services"]["get_targets"]["fields"]

@@ -30,8 +30,13 @@ direction, and a north-up radar card.
 - Bundled images for safe/alert states and supported target categories.
 - Persisted start time and live duration for safe, yellow, and red periods.
 - Compact total and per-category target analytics in the radar card.
+- A response-only `air_threat_monitor.get_targets` action for automations and
+  scripts that need the complete current target list without Recorder-heavy
+  entity attributes.
 - Two visual styles: the default green/yellow/red signal design and an optional
   light/dark style that follows the current Home Assistant theme.
+- Standard and compact card-height modes, plus the Home Assistant theme's card
+  corner radius.
 - Automatic white/dark target artwork selection for readable target rows in
   both dark and light Home Assistant themes.
 - A graphical card editor with live, safe-demo, and alert-demo modes.
@@ -72,9 +77,11 @@ repository.
    **Integration** as the category.
 4. Install **Air Threat Monitor**.
 5. Restart Home Assistant.
-6. Go to **Settings > Devices & services > Add integration**.
-7. Search for **Air Threat Monitor**.
-8. Check the prefilled coordinates and submit the form.
+6. Hard-refresh the browser (`Ctrl+F5` or `Cmd+Shift+R`) or fully close and
+   reopen the Home Assistant Companion App.
+7. Go to **Settings > Devices & services > Add integration**.
+8. Search for **Air Threat Monitor**.
+9. Check the prefilled coordinates and submit the form.
 
 ## Manual installation
 
@@ -83,7 +90,9 @@ repository.
    path must be:
    `/config/custom_components/air_threat_monitor/manifest.json`.
 3. Restart Home Assistant.
-4. Add **Air Threat Monitor** from **Settings > Devices & services**.
+4. Hard-refresh the browser (`Ctrl+F5` or `Cmd+Shift+R`) or fully close and
+   reopen the Home Assistant Companion App.
+5. Add **Air Threat Monitor** from **Settings > Devices & services**.
 
 For the standard setup, no files need to be copied to `/config/www` and no
 dashboard resource needs to be registered manually.
@@ -107,7 +116,8 @@ dashboard resource needs to be registered manually.
    no compass data.
 7. Choose **Signal colors** for the green/yellow/red card or **Follow Home
    Assistant theme** for a neutral light/dark card.
-8. Choose the radar radius, number of target rows, and whether the target list
+8. Choose **Standard** or **Compact** card height.
+9. Choose the radar radius, number of target rows, and whether the target list
    is visible. The radius affects radar marks only; the list can also show
    reported targets outside that radius.
 
@@ -224,6 +234,25 @@ card while test data is active.
 Large target lists are kept out of entity attributes and Home Assistant
 Recorder. The bundled card obtains a compact processed snapshot over the Home
 Assistant WebSocket API.
+
+## Getting the complete target list
+
+The response-only `air_threat_monitor.get_targets` action returns every current
+target calculated for one configured location. Select the location in
+**Developer tools > Actions**; the UI fills its config entry ID for you.
+
+```yaml
+action: air_threat_monitor.get_targets
+data:
+  config_entry_id: 01JEXAMPLECONFIGENTRY
+response_variable: air_threat_targets
+```
+
+The response contains `count`, `updated_at`, and `targets`. Each target includes
+its category, title, locality, district, region, distance, bearings, heading,
+direction arrows, approach state, risk level, group count, status, image URLs,
+and provider update time. It intentionally excludes exact target and configured
+home coordinates.
 
 ## Privacy
 

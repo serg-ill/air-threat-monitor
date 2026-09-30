@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Final
 
 DOMAIN = "air_threat_monitor"
-VERSION: Final = "0.4.1"
+VERSION: Final = "0.5.0"
 DEFAULT_ENTRY_TITLE: Final = "Air Threat Monitor"
 PROJECT_URL: Final = "https://github.com/serg-ill/air-threat-monitor"
 CONFIG_ENTRY_VERSION: Final = 2
@@ -14,6 +14,9 @@ CONFIG_ENTRY_MINOR_VERSION: Final = 1
 
 CONF_LATITUDE: Final = "latitude"
 CONF_LONGITUDE: Final = "longitude"
+CONF_CONFIG_ENTRY_ID: Final = "config_entry_id"
+
+SERVICE_GET_TARGETS: Final = "get_targets"
 
 STATIC_URL: Final = "/air_threat_monitor/assets"
 CARD_VERSION: Final = VERSION

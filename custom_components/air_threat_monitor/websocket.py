@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
-from .calculations import distance_km
+from .calculations import direction_arrow, direction_label, distance_km
 from .const import ATTRIBUTION, DOMAIN, asset_url
 from .coordinator import AirThreatCoordinator
 from .models import (
@@ -192,7 +192,7 @@ def _live_device_place_name(
     return _automatic_tracker_place_name(hass, person_entity)
 
 
-def _serialize_threat(item: CalculatedThreat) -> dict[str, Any]:
+def serialize_threat(item: CalculatedThreat) -> dict[str, Any]:
     """Convert a calculated threat to frontend-safe data."""
 
     threat = item.threat
@@ -207,9 +207,24 @@ def _serialize_threat(item: CalculatedThreat) -> dict[str, Any]:
         "region": threat.region,
         "distance_km": round(item.distance_km, 1),
         "bearing": round(item.bearing_from_home, 1),
+        "bearing_from_home": round(item.bearing_from_home, 1),
+        "bearing_to_home": round(item.bearing_to_home, 1),
+        "bearing_label": direction_label(item.bearing_from_home),
+        "bearing_arrow": direction_arrow(item.bearing_from_home),
         "heading": round(threat.heading, 1) if threat.heading is not None else None,
+        "heading_arrow": (
+            direction_arrow(threat.heading)
+            if threat.heading is not None
+            else None
+        ),
+        "screen_bearing": round(item.screen_bearing, 1),
         "icon_rotation": (
             round(item.icon_rotation, 1) if item.icon_rotation is not None else None
+        ),
+        "approach_angle": (
+            round(item.approach_angle, 1)
+            if item.approach_angle is not None
+            else None
         ),
         "is_approaching": item.is_approaching,
         "risk_level": item.risk_level,
@@ -315,7 +330,7 @@ def _snapshot(
             if position_accuracy_m is not None
             else None
         ),
-        "targets": [_serialize_threat(item) for item in selected_threats],
+        "targets": [serialize_threat(item) for item in selected_threats],
         "analytics": {
             "total": len(selected_threats),
             "within_100_km": sum(

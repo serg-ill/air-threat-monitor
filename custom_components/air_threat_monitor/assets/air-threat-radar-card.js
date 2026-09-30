@@ -4,7 +4,7 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.4.1";
+const ASSET_VERSION = "0.5.0";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;
@@ -13,6 +13,7 @@ const VALID_MODES = new Set(["live", "demo_safe", "demo_warning", "demo_alert"])
 const VALID_POSITION_MODES = new Set(["configured", "device", "tracker", "auto"]);
 const VALID_ORIENTATION_MODES = new Set(["north_up", "device_compass", "auto"]);
 const VALID_CARD_STYLES = new Set(["signal", "theme"]);
+const VALID_CARD_DENSITIES = new Set(["standard", "compact"]);
 const VALID_ARTWORK_STYLES = new Set(["standard", "custom"]);
 
 function registerCardMetadata() {
@@ -49,6 +50,9 @@ const TEXT = {
     cardStyle: "Стиль картки",
     signalStyle: "Сигнальні кольори",
     themeStyle: "За темою Home Assistant",
+    cardDensity: "Висота картки",
+    standardDensity: "Стандартна",
+    compactDensity: "Компактна",
     positionSource: "Позиція для розрахунків",
     configuredPosition: "Фіксована локація",
     currentDevicePosition: "Живий GPS цього пристрою",
@@ -127,6 +131,9 @@ const TEXT = {
     cardStyle: "Card style",
     signalStyle: "Signal colors",
     themeStyle: "Follow Home Assistant theme",
+    cardDensity: "Card height",
+    standardDensity: "Standard",
+    compactDensity: "Compact",
     positionSource: "Position used for calculations",
     configuredPosition: "Fixed location",
     currentDevicePosition: "Live GPS of this device",
@@ -451,6 +458,10 @@ function normalizeConfig(config = {}) {
   if (!VALID_CARD_STYLES.has(cardStyle)) {
     throw new Error(`Unsupported card_style: ${cardStyle}`);
   }
+  const cardDensity = valueOr(config.card_density, "standard");
+  if (!VALID_CARD_DENSITIES.has(cardDensity)) {
+    throw new Error(`Unsupported card_density: ${cardDensity}`);
+  }
   const requestedArtworkStyle = valueOr(config.artwork_style, "standard");
   const artworkStyle = VALID_ARTWORK_STYLES.has(requestedArtworkStyle)
     ? requestedArtworkStyle
@@ -471,6 +482,7 @@ function normalizeConfig(config = {}) {
     geocoded_entity: "",
     orientation_mode: orientationMode,
     card_style: cardStyle,
+    card_density: cardDensity,
     artwork_style: artworkStyle,
     safe_image: String(valueOr(config.safe_image, "")).trim(),
     danger_image: String(valueOr(config.danger_image, "")).trim(),
@@ -549,7 +561,7 @@ class AirThreatRadarCardEditor extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block}
-          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:20px;background:#3b4148;color:white}
+          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:var(--ha-card-border-radius,12px);background:#3b4148;color:white}
           strong,span{display:block}
           span{margin-top:7px;font-size:11px;line-height:1.3;opacity:.78;overflow-wrap:anywhere}
         </style>
@@ -567,6 +579,7 @@ class AirThreatRadarCardEditor extends HTMLElement {
     const positionMode = valueOr(this._config.position_mode, "configured");
     const orientationMode = valueOr(this._config.orientation_mode, "north_up");
     const cardStyle = valueOr(this._config.card_style, "signal");
+    const cardDensity = valueOr(this._config.card_density, "standard");
     const linuxDesktop = isLinuxDesktopClient();
     const trackerIds = this._hass && this._hass.states
       ? Object.keys(this._hass.states).filter(
@@ -639,6 +652,10 @@ class AirThreatRadarCardEditor extends HTMLElement {
             <option value="signal" ${cardStyle === "signal" ? "selected" : ""}>${t.signalStyle}</option>
             <option value="theme" ${cardStyle === "theme" ? "selected" : ""}>${t.themeStyle}</option>
           </select></label>
+          <label>${t.cardDensity}<select id="card-density">
+            <option value="standard" ${cardDensity === "standard" ? "selected" : ""}>${t.standardDensity}</option>
+            <option value="compact" ${cardDensity === "compact" ? "selected" : ""}>${t.compactDensity}</option>
+          </select></label>
           <label>${t.radius}<select id="radius">
             ${[20, 50, 100].map((value) => `<option value="${value}" ${value === radius ? "selected" : ""}>${value} ${t.distanceUnit}</option>`).join("")}
           </select></label>
@@ -703,6 +720,12 @@ class AirThreatRadarCardEditor extends HTMLElement {
         this._changed({ card_style: event.target.value });
       });
     }
+    const cardDensityElement = this.shadowRoot.querySelector("#card-density");
+    if (cardDensityElement) {
+      cardDensityElement.addEventListener("change", (event) => {
+        this._changed({ card_density: event.target.value });
+      });
+    }
     const radiusElement = this.shadowRoot.querySelector("#radius");
     if (radiusElement) {
       radiusElement.addEventListener("change", (event) => {
@@ -739,6 +762,7 @@ class AirThreatRadarCard extends HTMLElement {
       tracker_entity: "",
       orientation_mode: "north_up",
       card_style: "signal",
+      card_density: "standard",
       artwork_style: "standard",
       safe_image: "",
       danger_image: "",
@@ -853,6 +877,7 @@ class AirThreatRadarCard extends HTMLElement {
   }
 
   getCardSize() {
+    const rowHeight = this._config.card_density === "compact" ? 32 : 38;
     const targetCount = this._config.show_target_list === false
       ? 0
       : selectVisibleTargets(
@@ -860,7 +885,7 @@ class AirThreatRadarCard extends HTMLElement {
         Number(valueOr(this._config.max_distance, 100)),
         valueOr(this._config.max_targets, "auto"),
       ).length;
-    return 3 + Math.ceil((targetCount * 38) / 50);
+    return 3 + Math.ceil((targetCount * rowHeight) / 50);
   }
 
   getGridOptions() {
@@ -1653,7 +1678,7 @@ class AirThreatRadarCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host{display:block}
-          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:20px;background:#3b4148;color:white}
+          ha-card{box-sizing:border-box;min-height:96px;padding:14px;overflow:hidden;border-radius:var(--ha-card-border-radius,12px);background:#3b4148;color:white}
           strong,span{display:block}
           span{margin-top:7px;font-size:11px;line-height:1.3;opacity:.78;overflow-wrap:anywhere}
         </style>
@@ -1709,7 +1734,7 @@ class AirThreatRadarCard extends HTMLElement {
       const automaticActions = automaticFallback
         ? `<div class="actions"><button id="location-fixed" type="button">${escapeHtml(t.useFixedLocation)}</button><button id="location-retry" type="button">${escapeHtml(t.retryGps)}</button></div>`
         : retry;
-      this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{overflow:hidden;border-radius:20px}.message{min-height:100px;display:grid;place-items:center;padding:16px;text-align:center}.message>div{display:grid;justify-items:center;gap:10px;max-width:440px}.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.message button{min-height:36px;padding:0 13px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.12);color:inherit;font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}</style><ha-card><div class="message"><div><span>${escapeHtml(message)}</span>${automaticActions}</div></div></ha-card>`;
+      this.shadowRoot.innerHTML = `<style>:host{display:block}ha-card{overflow:hidden;border-radius:var(--ha-card-border-radius,12px)}.message{min-height:100px;display:grid;place-items:center;padding:16px;text-align:center}.message>div{display:grid;justify-items:center;gap:10px;max-width:440px}.actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.message button{min-height:36px;padding:0 13px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.12);color:inherit;font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer}</style><ha-card><div class="message"><div><span>${escapeHtml(message)}</span>${automaticActions}</div></div></ha-card>`;
       const fixedButton = this.shadowRoot.querySelector("#location-fixed");
       if (fixedButton) {
         fixedButton.addEventListener("click", (event) => {
@@ -1745,7 +1770,7 @@ class AirThreatRadarCard extends HTMLElement {
       this.shadowRoot.innerHTML = `
         <style>
           :host { display:block; letter-spacing:0; }
-          ha-card { overflow:hidden; color:white; background:#3b4148; border-radius:20px; border:0; }
+          ha-card { overflow:hidden; color:white; background:#3b4148; border-radius:var(--ha-card-border-radius,12px); border:0; }
           .unavailable { min-height:116px; padding:18px; display:grid; align-content:center; gap:8px; }
           .unavailable strong { font-size:20px; line-height:1; }
           .unavailable span { max-width:520px; font-size:12px; line-height:1.35; opacity:.78; }
@@ -1756,6 +1781,7 @@ class AirThreatRadarCard extends HTMLElement {
     }
 
     const themeStyle = this._config.card_style === "theme";
+    const compactDensity = this._config.card_density === "compact";
     const lightTheme = Boolean(
       themeStyle
       && this._hass
@@ -1927,7 +1953,7 @@ class AirThreatRadarCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display:block; letter-spacing:0; }
-        ha-card { position:relative; overflow:hidden; color:${cardColor}; background:${cardBackground}; border-radius:20px; border:${themeStyle ? `1px solid ${dividerColor}` : "0"}; }
+        ha-card { position:relative; overflow:hidden; color:${cardColor}; background:${cardBackground}; border-radius:var(--ha-card-border-radius,12px); border:${themeStyle ? `1px solid ${dividerColor}` : "0"}; }
         .demo-badge { position:absolute; z-index:5; top:8px; right:8px; padding:4px 7px; border-radius:5px; background:#ffd60a; color:#171717; font-size:9px; font-weight:950; box-shadow:0 2px 8px rgba(0,0,0,.3); }
         .top { min-height:132px; padding:14px 16px; display:grid; grid-template-columns:minmax(0,1fr) 126px; gap:10px; align-items:center; }
         h2 { margin:0; font-size:28px; line-height:1; letter-spacing:0; color:${cardColor}; text-shadow:${warning || themeStyle ? "none" : "0 2px 5px rgba(0,0,0,.28)"}; }
@@ -2018,8 +2044,25 @@ class AirThreatRadarCard extends HTMLElement {
           .credit > span { display:none; }
           .credit { font-size:6.5px; }
         }
+        ha-card.density-compact .top { min-height:104px; padding:10px 12px; grid-template-columns:minmax(0,1fr) 96px; gap:6px; }
+        ha-card.density-compact h2 { font-size:24px; }
+        ha-card.density-compact .area { margin-top:4px; font-size:11px; }
+        ha-card.density-compact .chips { margin-top:5px; gap:4px; }
+        ha-card.density-compact .chip { min-height:24px; padding:0 8px; font-size:10px; }
+        ha-card.density-compact .visual { width:96px; height:96px; }
+        ha-card.density-compact .status-image { max-width:96px; max-height:96px; }
+        ha-card.density-compact .radar { width:84px; height:84px; }
+        ha-card.density-compact .status-marker { width:30px; height:30px; }
+        ha-card.density-compact .row { min-height:32px; padding:0 10px; grid-template-columns:24px minmax(0,1fr) auto; gap:6px; font-size:11px; }
+        ha-card.density-compact .row img { width:20px; height:20px; }
+        ha-card.density-compact .footer { min-height:24px; padding:0 7px; gap:4px; }
+        ha-card.density-compact .analytics { gap:4px; font-size:7.8px; }
+        ha-card.density-compact .analytics.compact { font-size:7.2px; }
+        ha-card.density-compact .analytics.dense { gap:3px; font-size:6.4px; }
+        ha-card.density-compact .analytics b { font-size:9px; }
+        ha-card.density-compact .credit { font-size:6.5px; }
       </style>
-      <ha-card>
+      <ha-card class="${compactDensity ? "density-compact" : ""}">
         ${data.demo ? `<div class="demo-badge">${t.demo}</div>` : ""}
         <div class="top">
           <div class="status-copy more-info-zone" role="button" tabindex="0"><h2>${statusTitle}</h2><div class="area">${displayArea ? `<span class="place place-full" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span><span class="place place-compact" title="${escapeHtml(displayArea)}">${escapeHtml(compactDistrictName(displayArea))}</span>` : ""}${statusTime ? `<span class="from${displayArea ? " separated" : ""}"><span class="clock-icon"><ha-icon icon="mdi:clock-outline"></ha-icon></span><span class="status-time">${statusTime}</span></span>` : ""}</div>

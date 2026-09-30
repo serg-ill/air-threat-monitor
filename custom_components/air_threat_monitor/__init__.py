@@ -24,6 +24,7 @@ from .const import (
 )
 from .const import DOMAIN as DOMAIN
 from .coordinator import AirThreatCoordinator
+from .services import async_register_services
 from .websocket import async_register_websocket_api
 
 PLATFORMS = (Platform.BINARY_SENSOR, Platform.SENSOR)
@@ -54,6 +55,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             "Failed to register the bundled Lovelace card resource"
         )
     async_register_websocket_api(hass)
+    async_register_services(hass)
     return True
 
 

@@ -42,5 +42,25 @@
         "name": "Зафіксовані цілі"
       }
     }
+  },
+  "services": {
+    "get_targets": {
+      "name": "Отримати поточні цілі",
+      "description": "Повертає повний поточний список цілей, розрахований для вибраної локації.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Локація",
+          "description": "Локація Air Threat Monitor для розрахунку відстані та напрямку."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "Вибрану локацію Air Threat Monitor не знайдено."
+    },
+    "config_entry_not_loaded": {
+      "message": "Вибрана локація Air Threat Monitor не завантажена."
+    }
   }
 }

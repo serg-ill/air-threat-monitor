@@ -42,5 +42,25 @@
         "name": "Reported targets"
       }
     }
+  },
+  "services": {
+    "get_targets": {
+      "name": "Get current targets",
+      "description": "Returns the complete current target list calculated for one configured location.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Location",
+          "description": "The Air Threat Monitor location used for distance and direction calculations."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "config_entry_not_found": {
+      "message": "The selected Air Threat Monitor location was not found."
+    },
+    "config_entry_not_loaded": {
+      "message": "The selected Air Threat Monitor location is not loaded."
+    }
   }
 }

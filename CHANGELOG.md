@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0
+
+- Added the response-only `air_threat_monitor.get_targets` action. It returns
+  the complete current target list for a selected configured location without
+  adding large target arrays to entity attributes or Recorder.
+- Expanded serialized target data with bearings, direction labels and arrows,
+  heading arrows, screen bearing, and approach angle.
+- Added standard and compact card-height modes to the graphical card editor.
+- Replaced hard-coded outer card rounding with Home Assistant's
+  `--ha-card-border-radius` theme variable.
+- Clarified browser and Companion App cache refresh steps after installation.
+
 ## 0.4.1
 
 - Fixed the yellow warning state overriding the neutral Home Assistant theme

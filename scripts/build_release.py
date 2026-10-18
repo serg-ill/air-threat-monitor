@@ -13,23 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 INTEGRATION = ROOT / "custom_components" / "air_threat_monitor"
 DIST = ROOT / "dist"
 HACS_ARCHIVE = DIST / "air-threat-monitor.zip"
-MANUAL_DOCUMENTS = (
-    "README.md",
-    "RELEASE_TESTING.md",
-    "CHANGELOG.md",
-    "NOTICE.md",
-    "LICENSE",
-)
-MANUAL_ASSET_DIRECTORIES = (
-    ROOT / "brand",
-    ROOT / "docs" / "images",
-)
 
 
 def _version() -> str:
-    manifest = json.loads(
-        (INTEGRATION / "manifest.json").read_text(encoding="utf-8")
-    )
+    manifest = json.loads((INTEGRATION / "manifest.json").read_text(encoding="utf-8"))
     version = manifest["version"]
     constants = (INTEGRATION / "const.py").read_text(encoding="utf-8")
     match = re.search(r'^VERSION: Final = "([^"]+)"$', constants, re.MULTILINE)
@@ -38,14 +25,39 @@ def _version() -> str:
     return version
 
 
-def _files() -> list[Path]:
-    return sorted(
-        path
-        for path in INTEGRATION.rglob("*")
-        if path.is_file()
-        and "__pycache__" not in path.parts
-        and path.suffix not in {".pyc", ".pyo"}
+def _files(section: str = "integration") -> list[Path]:
+    """Package only explicitly reviewed public files, never directory contents."""
+
+    manifest = json.loads(
+        (ROOT / "scripts" / "release-files.json").read_text(encoding="utf-8")
     )
+    names = manifest[section]
+    if not isinstance(names, list) or not names:
+        raise RuntimeError(f"Empty or invalid release allowlist: {section}")
+    base = INTEGRATION if section == "integration" else ROOT
+    sources = []
+    for name in names:
+        if not isinstance(name, str):
+            raise RuntimeError("Release paths must be strings")
+        relative = Path(name)
+        if (
+            relative.is_absolute()
+            or relative.as_posix() != name
+            or any(part.startswith(".") for part in relative.parts)
+        ):
+            raise RuntimeError(f"Invalid release path: {name}")
+        source = base / relative
+        ancestors = (
+            base.joinpath(*relative.parts[:i]) for i in range(len(relative.parts) + 1)
+        )
+        if any(path.is_symlink() for path in ancestors):
+            raise RuntimeError(f"Symlinks are not allowed in releases: {name}")
+        if not source.is_file():
+            raise RuntimeError(f"Missing allowlisted release file: {name}")
+        sources.append(source)
+    if len(set(sources)) != len(sources):
+        raise RuntimeError(f"Duplicate release paths: {section}")
+    return sorted(sources)
 
 
 def _write_file(archive: ZipFile, source: Path, target: Path) -> None:
@@ -66,16 +78,8 @@ def _build(archive_path: Path, *, manual: bool) -> None:
             )
             _write_file(archive, source, target)
         if manual:
-            for filename in MANUAL_DOCUMENTS:
-                _write_file(archive, ROOT / filename, Path(filename))
-            for directory in MANUAL_ASSET_DIRECTORIES:
-                for source in sorted(directory.rglob("*")):
-                    if source.is_file():
-                        _write_file(
-                            archive,
-                            source,
-                            source.relative_to(ROOT),
-                        )
+            for source in _files("manual"):
+                _write_file(archive, source, source.relative_to(ROOT))
 
 
 def _validate_repository() -> None:
@@ -114,6 +118,8 @@ def main() -> None:
 
     version = _version()
     _validate_repository()
+    _files()
+    _files("manual")
     DIST.mkdir(exist_ok=True)
     for old_file in DIST.iterdir():
         if old_file.is_file():
@@ -129,9 +135,7 @@ def main() -> None:
     for archive in (HACS_ARCHIVE, manual_archive):
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         checksums.append(f"{digest}  {archive.name}")
-    (DIST / "SHA256SUMS.txt").write_text(
-        "\n".join(checksums) + "\n", encoding="utf-8"
-    )
+    (DIST / "SHA256SUMS.txt").write_text("\n".join(checksums) + "\n", encoding="utf-8")
 
     print(f"Built Air Threat Monitor {version}")
     for archive in (HACS_ARCHIVE, manual_archive):

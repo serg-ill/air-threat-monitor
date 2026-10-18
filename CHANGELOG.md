@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.1
+
+- Share one 10-second NEPTUN polling coordinator across all configured
+  locations, following the HACS review recommendation. Global threat and alert
+  endpoints are each fetched once per cycle; boundary files are reused.
+- Preserve per-location calculations, entities, stored alert durations, dynamic
+  GPS/tracker locations, the response service, and the existing card layout.
+- Keep provider failure and recovery handling, manual refreshes, and disabled
+  polling. Unloading one location does not stop updates for the others, and
+  polling stops when no locations subscribe.
+- Build release archives from an explicit public-file allowlist, excluding
+  unlisted local files and rejecting symlinks and unsafe paths.
+- Update installation instructions now that the integration is in the default
+  HACS catalog. Existing installations do not need to be reconfigured.
+
 ## 0.5.0
 
 - Added the response-only `air_threat_monitor.get_targets` action. It returns

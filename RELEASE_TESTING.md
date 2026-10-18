@@ -22,6 +22,21 @@ Thank you for testing Air Threat Monitor.
 - [ ] Each returned target has distance, bearings, heading/direction,
       approach, risk, status, and image fields but no exact coordinates.
 
+## Shared polling and release privacy
+
+- [ ] Three configured locations fetch each global threat/alert endpoint only
+      once per 10-second cycle, while retaining different distances and alerts.
+- [ ] Reloading or removing the first location does not stop the others.
+- [ ] Removing all polling locations stops scheduled provider requests.
+- [ ] Disabled automatic polling still allows a manual entity refresh.
+- [ ] A provider error marks locations unavailable without changing an alert
+      to all-clear or overwriting the last successful snapshot timestamp.
+- [ ] Recovery updates all locations and preserves observed alert durations.
+- [ ] Existing card appearance, custom local artwork, dynamic GPS/tracker
+      positions, and the response service remain unchanged.
+- [ ] Archive entries exactly match `scripts/release-files.json`; local files,
+      private artwork, credentials, backups, and symlinks are not included.
+
 ## Card
 
 - [ ] Air Threat Radar appears in the standard **Add card** dialog.

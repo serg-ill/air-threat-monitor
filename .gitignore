@@ -7,3 +7,10 @@ htmlcov/
 dist/
 private-artwork/
 .DS_Store
+.venv/
+.env
+.env.*
+secrets.yaml
+configuration.yaml
+.storage/
+backups/

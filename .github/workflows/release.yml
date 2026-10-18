@@ -20,6 +20,9 @@ jobs:
         run: |
           VERSION=$(python -c 'import json; print(json.load(open("custom_components/air_threat_monitor/manifest.json"))["version"])')
           test "${GITHUB_REF_NAME}" = "v${VERSION}"
+      - run: pip install -r requirements_test.txt
+      - run: ruff check .
+      - run: pytest
       - run: python scripts/build_release.py
       - uses: softprops/action-gh-release@v2
         with:

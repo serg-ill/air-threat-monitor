@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .alerts import find_local_alert, normalize_alerts
-from .api import AirThreatApiClient, AirThreatApiError
 from .calculations import calculate_threat
 from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
-    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
 from .geojson import resolve_area
@@ -31,19 +29,20 @@ from .models import (
     ResolvedArea,
 )
 from .normalization import extract_threat_rows, normalize_threat
+from .provider import AirThreatProvider
 from .status import AlertStatusState, parse_datetime, update_alert_status
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
-    """Fetch, normalize, and calculate one shared monitor snapshot."""
+    """Calculate one location from the shared provider snapshot."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        client: AirThreatApiClient,
+        provider: AirThreatProvider,
     ) -> None:
         """Initialize the coordinator."""
 
@@ -52,10 +51,9 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             _LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=DEFAULT_UPDATE_INTERVAL,
             always_update=False,
         )
-        self.client = client
+        self.provider = provider
         self.home = GeoPoint(
             latitude=float(entry.data[CONF_LATITUDE]),
             longitude=float(entry.data[CONF_LONGITUDE]),
@@ -76,6 +74,29 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             str,
             tuple[str | None, str | None],
         ] = {}
+
+    @callback
+    def async_connect_provider(self) -> Callable[[], None]:
+        """Subscribe until this entry unloads, preserving disabled polling."""
+
+        if self.config_entry.pref_disable_polling:
+            return lambda: None
+
+        @callback
+        def update_location() -> None:
+            self.config_entry.async_create_background_task(
+                self.hass,
+                self.async_refresh(),
+                name=f"{DOMAIN} location update",
+            )
+
+        return self.provider.async_add_listener(update_location)
+
+    async def async_request_refresh(self) -> None:
+        """Keep manual entity refreshes connected to the shared data source."""
+
+        await self.provider.async_request_refresh()
+        await super().async_request_refresh()
 
     async def _async_setup(self) -> None:
         """Resolve the configured point to its district and oblast once."""
@@ -129,13 +150,8 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
                         normalized_oblast_key,
                     )
 
-        try:
-            raions, oblasts = await asyncio.gather(
-                self.client.async_get_raions(),
-                self.client.async_get_oblasts(),
-            )
-        except AirThreatApiError as error:
-            raise UpdateFailed(str(error)) from error
+        snapshot = self.provider.snapshot()
+        raions, oblasts = snapshot.raions, snapshot.oblasts
 
         self.raion = resolve_area(self.home, raions, AlertScope.RAION)
         self.oblast = resolve_area(self.home, oblasts, AlertScope.OBLAST)
@@ -147,15 +163,10 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             )
 
     async def _async_update_data(self) -> MonitorData:
-        """Fetch and process the current threat and alert snapshots."""
+        """Process the same complete provider snapshot as every other location."""
 
-        try:
-            threat_payload, alert_payload = await asyncio.gather(
-                self.client.async_get_threats(),
-                self.client.async_get_alerts(),
-            )
-        except AirThreatApiError as error:
-            raise UpdateFailed(str(error)) from error
+        snapshot = self.provider.snapshot()
+        threat_payload, alert_payload = snapshot.threats, snapshot.alerts
 
         calculated = []
         for row in extract_threat_rows(threat_payload):
@@ -171,7 +182,7 @@ class AirThreatCoordinator(DataUpdateCoordinator[MonitorData]):
             oblast_key=self.oblast.area_key if self.oblast else None,
         )
 
-        now = datetime.now(UTC)
+        now = snapshot.updated_at
         self._status_state, status_changed = update_alert_status(
             self._status_state,
             active=local_alert is not None,

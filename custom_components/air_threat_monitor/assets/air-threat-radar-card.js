@@ -4,7 +4,7 @@
 const CARD_TYPE = "air-threat-radar-card";
 const EDITOR_TYPE = "air-threat-radar-card-editor";
 const API_PREFIX = "air_threat_monitor";
-const ASSET_VERSION = "0.5.0";
+const ASSET_VERSION = "0.5.1";
 const SNAPSHOT_CACHE_PREFIX = `${API_PREFIX}:snapshot-cache:v1`;
 const SNAPSHOT_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
 const DEGRADED_SNAPSHOT_GRACE_MS = 60 * 1000;

@@ -36,8 +36,8 @@ async def async_get_config_entry_diagnostics(
                 else None
             ),
             "update_interval_seconds": (
-                coordinator.update_interval.total_seconds()
-                if coordinator.update_interval is not None
+                coordinator.provider.update_interval.total_seconds()
+                if coordinator.provider.update_interval is not None
                 else None
             ),
             "updated_at": data.updated_at.isoformat(),

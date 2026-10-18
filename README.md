@@ -68,20 +68,19 @@ attribution details are documented in [NOTICE.md](NOTICE.md).
 
 ## Installation with HACS
 
-The GitHub repository must be public before it can be added to HACS as a custom
-repository.
+Air Threat Monitor is included in the default HACS catalog.
 
 1. Open **HACS** in Home Assistant.
-2. Open the three-dot menu and choose **Custom repositories**.
-3. Enter `https://github.com/serg-ill/air-threat-monitor` and select
-   **Integration** as the category.
-4. Install **Air Threat Monitor**.
-5. Restart Home Assistant.
-6. Hard-refresh the browser (`Ctrl+F5` or `Cmd+Shift+R`) or fully close and
+2. Search for **Air Threat Monitor** and download the integration.
+3. Restart Home Assistant.
+4. Hard-refresh the browser (`Ctrl+F5` or `Cmd+Shift+R`) or fully close and
    reopen the Home Assistant Companion App.
-7. Go to **Settings > Devices & services > Add integration**.
-8. Search for **Air Threat Monitor**.
-9. Check the prefilled coordinates and submit the form.
+5. Go to **Settings > Devices & services > Add integration**.
+6. Search for **Air Threat Monitor**.
+7. Check the prefilled coordinates and submit the form.
+
+Existing custom-repository installations continue to update normally; do not
+remove or recreate your configured locations.
 
 ## Manual installation
 
@@ -265,6 +264,18 @@ home coordinates.
 - Diagnostics do not contain exact target coordinates or the raw target list.
 - The card receives calculated bearings and distances, not the configured home
   coordinates.
+- Public release archives use the explicit file list in
+  `scripts/release-files.json`. Local artwork, credentials, backups, and other
+  unlisted files are not packaged, even when placed inside the integration.
+
+## Data updates
+
+All configured locations share one provider poll every 10 seconds. Each cycle
+fetches the global threat and alert endpoints once, then calculates distances,
+directions, and local alert status separately for each location. District and
+oblast boundaries are loaded once and reused. Configured coordinates are not
+sent to NEPTUN. A failed poll retains the last successful snapshot with the
+existing unavailable/delayed-data handling; it does not report an all-clear.
 
 ## Updating
 

@@ -11,10 +11,10 @@ from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_STORAGE
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from .api import AirThreatApiClient
 from .const import (
     CARD_MODULE_URL,
     CONFIG_ENTRY_MINOR_VERSION,
@@ -24,6 +24,7 @@ from .const import (
 )
 from .const import DOMAIN as DOMAIN
 from .coordinator import AirThreatCoordinator
+from .provider import async_get_provider
 from .services import async_register_services
 from .websocket import async_register_websocket_api
 
@@ -111,10 +112,15 @@ async def async_setup_entry(
 ) -> bool:
     """Set up Air Threat Monitor from a config entry."""
 
-    client = AirThreatApiClient(async_get_clientsession(hass))
-    coordinator = AirThreatCoordinator(hass, entry, client)
+    provider = await async_get_provider(hass)
+    try:
+        await provider.async_ensure_ready()
+    except UpdateFailed as error:
+        raise ConfigEntryNotReady(str(error)) from error
+    coordinator = AirThreatCoordinator(hass, entry, provider)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    entry.async_on_unload(coordinator.async_connect_provider())
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
